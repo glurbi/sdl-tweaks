@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ttf", "ttf\ttf.vcxproj", "{9FA63772-B6E6-43BC-BEDB-87B6F68509B7}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glew", "glew\glew.vcxproj", "{04DDCB59-11F6-42A5-AD7F-813366A9F00C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mix", "mix\mix.vcxproj", "{AAFD02E8-8AAC-412C-913D-D6D96D9A0DA8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9FA63772-B6E6-43BC-BEDB-87B6F68509B7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9FA63772-B6E6-43BC-BEDB-87B6F68509B7}.Debug|Win32.Build.0 = Debug|Win32
+		{9FA63772-B6E6-43BC-BEDB-87B6F68509B7}.Release|Win32.ActiveCfg = Release|Win32
+		{9FA63772-B6E6-43BC-BEDB-87B6F68509B7}.Release|Win32.Build.0 = Release|Win32
+		{04DDCB59-11F6-42A5-AD7F-813366A9F00C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{04DDCB59-11F6-42A5-AD7F-813366A9F00C}.Debug|Win32.Build.0 = Debug|Win32
+		{04DDCB59-11F6-42A5-AD7F-813366A9F00C}.Release|Win32.ActiveCfg = Release|Win32
+		{04DDCB59-11F6-42A5-AD7F-813366A9F00C}.Release|Win32.Build.0 = Release|Win32
+		{AAFD02E8-8AAC-412C-913D-D6D96D9A0DA8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AAFD02E8-8AAC-412C-913D-D6D96D9A0DA8}.Debug|Win32.Build.0 = Debug|Win32
+		{AAFD02E8-8AAC-412C-913D-D6D96D9A0DA8}.Release|Win32.ActiveCfg = Release|Win32
+		{AAFD02E8-8AAC-412C-913D-D6D96D9A0DA8}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
