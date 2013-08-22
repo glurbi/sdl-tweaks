@@ -115,46 +115,59 @@ void createProgram() {
     checkProgramLinkStatus(programId);
 }
 
-void createTexture() {
+void createTexture(SDL_Surface* surface) {
     GLenum format = GL_RGBA;
-	int width = 2;
-	int height = 2;
-    char data[] = {
-		255, 255, 255, 255,
-		255, 0, 0, 255,
-		0, 255, 0, 255,
-		0, 0, 255, 255
-	};
+	int width = surface->w;
+	int height = surface->h;
+	int pitch = surface->pitch;
+	SDL_PixelFormat* fmt = surface->format;
+	if (fmt->BitsPerPixel != 8) {
+		std::cout << "Pixel format not supported (" << fmt->BitsPerPixel << ")" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	SDL_Palette* palette = fmt->palette;
+	char* p = (char*) surface->pixels;
+    GLubyte* textureData = new GLubyte[width*height*4];
+	GLubyte* t = textureData;
+	for (int i=0; i<height; i++) {
+		for (int j=0; j<width; j++) {
+			//std::cout << (int) p[i*pitch+j];
+			SDL_Color color = palette->colors[p[i*pitch+j]];
+			*t++ = color.r;
+			*t++ = color.g;
+			*t++ = color.b;
+			*t++ = 255;
+			//std::cout << (int)color.r << " " << (int)color.g << " " << (int)color.b << std::endl;
+		}
+		//std::cout << std::endl;
+	}
+
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, textureData);
 }
 
 void createQuad() {
 
     float positions[] = {
-            0.5f, 0.5f, 0.0f,
-            -1.0f, 0.5f, 0.0f,
-            0.5f, -1.0f, 0.0f,
-            0.5f, -1.0f, 0.0f,
-            -1.0f, -1.0f, 0.0f,
-            -1.0f, 0.5f, 0.0f
+        1.0f, 1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f
     };
     glGenBuffers(1, &quadId);
     glBindBuffer(GL_ARRAY_BUFFER, quadId);
     glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
 
 	float texcoords[] = {
-		0.0f, 0.0f,
-		1.0f, 0.0f,
 		1.0f, 1.0f,
-		0.0f, 1.0f,
 		1.0f, 0.0f,
-		1.0f, 1.0f
+		0.0f, 0.0f,
+		0.0f, 1.0f
 	};
 	glGenBuffers(1, &quadTexId);
 	glBindBuffer(GL_ARRAY_BUFFER, quadTexId);
@@ -186,7 +199,7 @@ void render(SDL_Window* w) {
 	glEnableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
     glBindBuffer(GL_ARRAY_BUFFER, quadTexId);
     glVertexAttribPointer(TEXCOORD_ATTRIBUTE_INDEX, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+	glDrawArrays(GL_QUADS, 0, 4);
     glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
     glDisableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -209,16 +222,14 @@ int main(int argc, char** argv)
 	reshape(800, 600);
 
 	SDL_Renderer* renderer = SDL_CreateRenderer(win, -1, 0);
-	TTF_Font* font = TTF_OpenFont("arial.ttf", 64);
+	TTF_Font* font = TTF_OpenFont("arial.ttf", 128);
 	SDL_Color text_color = {255, 255, 255};
-	SDL_Surface *text = TTF_RenderText_Solid(font, "Hello SDL!", text_color);
-	SDL_FreeSurface(text);
-
+	SDL_Surface *text = TTF_RenderText_Solid(font, "B", text_color);
 	glEnable(GL_TEXTURE_2D);
-
     createProgram();
     createQuad();
-	createTexture();
+	createTexture(text);
+	SDL_FreeSurface(text);
 
 	SDL_Event event;
 	while (1) {
