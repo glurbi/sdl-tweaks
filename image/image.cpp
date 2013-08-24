@@ -1,6 +1,8 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
+// image: www.freeimages.co.uk
+
 int main(int argc, char** argv)
 {
 	SDL_Init(SDL_INIT_EVERYTHING);
