@@ -132,6 +132,11 @@ int main(int argc, char **argv)
                 done = true;
             }
         }
+
+		//
+		// rendering
+		//
+
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 		glClear(GL_COLOR_BUFFER_BIT);
