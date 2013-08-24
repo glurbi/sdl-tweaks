@@ -13,10 +13,6 @@
   <ItemGroup>
     <ClCompile Include="glew.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="glewtest.frag" />
-    <None Include="glewtest.vert" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{04DDCB59-11F6-42A5-AD7F-813366A9F00C}</ProjectGuid>
     <RootNamespace>glew</RootNamespace>

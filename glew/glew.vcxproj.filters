@@ -15,14 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="glewtest.frag">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="glewtest.vert">
-      <Filter>Source Files</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="glew.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

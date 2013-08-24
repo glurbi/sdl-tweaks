@@ -1,54 +1,8 @@
+#include <iostream>
+#include <sys/stat.h>
 #include <SDL.h>
 #include <SDL_ttf.h>
-
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <SDL.h>
 #include <GL/glew.h>
-
-#include <iostream>
-
-typedef float matrix44[16];
-
-// Up to 16 attributes per vertex is allowed so any value between 0 and 15 will do.
-const int POSITION_ATTRIBUTE_INDEX = 0;
-const int TEXCOORD_ATTRIBUTE_INDEX = 1;
-
-// defines the orthographic projection volume
-const float left = -1.5f;
-const float right = 1.5f;
-const float bottom = -1.5f;
-const float top = 1.5f;
-const float nearPlane = 1.0f;
-const float farPlane = -1.0f;
-
-GLuint quadId;
-GLuint programId;
-GLuint quadTexId;
-GLuint textureId;
-float aspectRatio;
-SDL_Texture* texture;
-
-void ortho(matrix44 m, float left, float right, float bottom, float top, float nearp, float farp) {
-    m[0] = 2 / (right - left);
-    m[1] = 0.0f;
-    m[2] = 0.0f;
-    m[3] = 0.0f;
-    m[4] = 0.0f;
-    m[5] = 2 / (top - bottom);
-    m[6] = 0.0f;
-    m[7] = 0.0f;
-    m[8] = 0.0f;
-    m[9] = 0.0f;
-    m[10] = 2 / (farp - nearp);
-    m[11] = 0.0f;
-    m[12] = -(right + left) / (right - left);
-    m[13] = -(top + bottom) / (top - bottom);
-    m[14] = -(farp + nearp) / (farp - nearp);
-    m[15] = 1.0f;
-}
 
 char* readTextFile(const char* filename) {
     struct stat st;
@@ -62,61 +16,12 @@ char* readTextFile(const char* filename) {
     return content;
 }
 
-void checkShaderCompileStatus(GLuint shaderId) {
-    GLint compileStatus;
-    glGetShaderiv(shaderId, GL_COMPILE_STATUS, &compileStatus);
-    if (compileStatus == GL_FALSE) {
-        GLint infoLogLength;
-        glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &infoLogLength);
-        printf("Shader compilation failed...\n");
-        char* log = (char*) malloc((1+infoLogLength)*sizeof(char));
-        glGetShaderInfoLog(shaderId, infoLogLength, NULL, log);
-        log[infoLogLength] = 0;
-        printf("%s", log);
-    }
-}
-
-void checkProgramLinkStatus(GLuint programId) {
-    GLint linkStatus;
-    glGetProgramiv(programId, GL_LINK_STATUS, &linkStatus);
-    if (linkStatus == GL_FALSE) {
-        GLint infoLogLength;
-        glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &infoLogLength);
-        printf("Program link failed...\n");
-        char* log = (char*) malloc((1+infoLogLength)*sizeof(char));
-        glGetProgramInfoLog(programId, infoLogLength, NULL, log);
-        log[infoLogLength] = 0;
-        printf("%s", log);
-    }
-}
-
-void createProgram() {
-    const GLchar* vertexShaderSource = readTextFile("mix.vert");
-    int vertexShaderSourceLength = strlen(vertexShaderSource);
-    GLuint vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShaderId, 1, &vertexShaderSource, &vertexShaderSourceLength);
-    glCompileShader(vertexShaderId);
-	checkShaderCompileStatus(vertexShaderId);
-
-    const GLchar* fragmentShaderSource = readTextFile("mix.frag");
-    int fragmentShaderSourceLength = strlen(fragmentShaderSource);
-    GLuint fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShaderId, 1, &fragmentShaderSource, &fragmentShaderSourceLength);
-    glCompileShader(fragmentShaderId);
-	checkShaderCompileStatus(fragmentShaderId);
-
-    programId = glCreateProgram();
-    glAttachShader(programId, vertexShaderId);
-    glAttachShader(programId, fragmentShaderId);
-    // associates the "inPosition" variable from the vertex shader with the position attribute
-    // the variable and the attribute must be bound before the program is linked
-    glBindAttribLocation(programId, POSITION_ATTRIBUTE_INDEX, "position");
-    glLinkProgram(programId);
-    checkProgramLinkStatus(programId);
-}
-
 int main(int argc, char** argv)
 {
+	// Up to 16 attributes per vertex is allowed so any value between 0 and 15 will do.
+	const int POSITION_ATTRIBUTE_INDEX = 12;
+	const int TEXCOORD_ATTRIBUTE_INDEX = 7;
+
 	const int width = 800;
 	const int height = 600;
 	const float aspectRatio = 1.0f * width / height;
@@ -136,9 +41,36 @@ int main(int argc, char** argv)
 	SDL_Renderer* renderer = SDL_CreateRenderer(win, -1, 0);
 	TTF_Font* font = TTF_OpenFont("arial.ttf", 128);
 	SDL_Color text_color = {255, 255, 255};
-	SDL_Surface* text = TTF_RenderText_Solid(font, "B", text_color);
+	SDL_Surface* text = TTF_RenderText_Solid(font, "Hello, SDL!", text_color);
 	glEnable(GL_TEXTURE_2D);
-    createProgram();
+
+	//
+	// create the shader program
+	//
+
+	// compile the vertex shader
+    const GLchar* vertexShaderSource = readTextFile("mix.vert");
+    int vertexShaderSourceLength = strlen(vertexShaderSource);
+    GLuint vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShaderId, 1, &vertexShaderSource, &vertexShaderSourceLength);
+    glCompileShader(vertexShaderId);
+
+	// compile the fragment shader
+    const GLchar* fragmentShaderSource = readTextFile("mix.frag");
+    int fragmentShaderSourceLength = strlen(fragmentShaderSource);
+    GLuint fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShaderId, 1, &fragmentShaderSource, &fragmentShaderSourceLength);
+    glCompileShader(fragmentShaderId);
+
+	// link the shader program
+	GLuint programId = glCreateProgram();
+    glAttachShader(programId, vertexShaderId);
+    glAttachShader(programId, fragmentShaderId);
+    // associates the "pos" variable from the vertex shader with the position attribute
+    // the variable and the attribute must be bound before the program is linked
+    glBindAttribLocation(programId, POSITION_ATTRIBUTE_INDEX, "pos");
+    glBindAttribLocation(programId, TEXCOORD_ATTRIBUTE_INDEX, "texCoord");
+    glLinkProgram(programId);
 
 	//
 	// create quad buffer
@@ -146,11 +78,12 @@ int main(int argc, char** argv)
 
 	// create positions
     float positions[] = {
-        1.0f, 1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,
-        -1.0f, 1.0f, 0.0f
+        1.4f, 1.0f, 0.0f,
+        1.4f, -1.0f, 0.0f,
+        -1.4f, -1.0f, 0.0f,
+        -1.4f, 1.0f, 0.0f
     };
+	GLuint quadId;
     glGenBuffers(1, &quadId);
     glBindBuffer(GL_ARRAY_BUFFER, quadId);
     glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
@@ -162,6 +95,7 @@ int main(int argc, char** argv)
 		0.0f, 0.0f,
 		0.0f, 1.0f
 	};
+	GLuint quadTexId;
 	glGenBuffers(1, &quadTexId);
 	glBindBuffer(GL_ARRAY_BUFFER, quadTexId);
     glBufferData(GL_ARRAY_BUFFER, sizeof(texcoords), texcoords, GL_STATIC_DRAW);
@@ -178,7 +112,8 @@ int main(int argc, char** argv)
 	char* p = (char*) text->pixels;
     GLubyte* textureData = new GLubyte[text->w * text->h * 4];
 	GLubyte* t = textureData;
-	for (int i=0; i < text->h; i++) {
+	//for (int i=0; i < text->h; i++) {
+	for (int i=text->h; i > 0; i--) {
 		for (int j=0; j < text->w; j++) {
 			SDL_Color color = palette->colors[p[i*text->pitch+j]];
 			*t++ = color.r;
@@ -188,6 +123,7 @@ int main(int argc, char** argv)
 		}
 	}
 
+	GLuint textureId;
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -197,11 +133,42 @@ int main(int argc, char** argv)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, text->w, text->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
 	SDL_FreeSurface(text);
 
-	matrix44 mvp;
-	ortho(mvp, left, right, bottom / aspectRatio, top / aspectRatio, nearPlane, farPlane);
+	//
+	// defines the orthographic projection matrix
+	//
+	float m[16];
+	const float left = -1.5f;
+	const float right = 1.5f;
+	const float bottom = -1.5f;
+	const float top = 1.5f;
+	const float nearp = 1.0f;
+	const float farp = -1.0f;
+    m[0] = 2 / (right - left);
+    m[1] = 0.0f;
+    m[2] = 0.0f;
+    m[3] = 0.0f;
+    m[4] = 0.0f;
+    m[5] = 2 / (top - bottom);
+    m[6] = 0.0f;
+    m[7] = 0.0f;
+    m[8] = 0.0f;
+    m[9] = 0.0f;
+    m[10] = 2 / (farp - nearp);
+    m[11] = 0.0f;
+    m[12] = -(right + left) / (right - left);
+    m[13] = -(top + bottom) / (top - bottom);
+    m[14] = -(farp + nearp) / (farp - nearp);
+    m[15] = 1.0f;
 
+	//
+	// SDL main loop
+	//
 	SDL_Event event;
 	while (1) {
+
+		//
+		// handle events
+		//
 		if (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) {
 				break;
@@ -217,7 +184,7 @@ int main(int argc, char** argv)
 		glBindTexture(GL_TEXTURE_2D, textureId);
 
 		GLuint matrixUniform = glGetUniformLocation(programId, "mvpMatrix");
-		glUniformMatrix4fv(matrixUniform, 1, false, mvp);
+		glUniformMatrix4fv(matrixUniform, 1, false, m);
 		GLuint textureUniform = glGetUniformLocation(programId, "texture");
 		glUniform1i(textureUniform, 0);
 

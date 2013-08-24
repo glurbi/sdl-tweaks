@@ -96,14 +96,13 @@ int main(int argc, char **argv)
 	//
 	// defines the orthographic projection matrix
 	//
+	float m[16];
 	const float left = -1.5f;
 	const float right = 1.5f;
 	const float bottom = -1.5f / aspectRatio;
 	const float top = 1.5f / aspectRatio;
 	const float nearPlane = 1.0f;
 	const float farPlane = -1.0f;
-
-	float m[16];
 	m[0] = 2 / (right - left);
     m[1] = 0.0f;
     m[2] = 0.0f;
