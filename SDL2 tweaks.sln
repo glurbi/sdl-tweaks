@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glew", "glew\glew.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mix", "mix\mix.vcxproj", "{AAFD02E8-8AAC-412C-913D-D6D96D9A0DA8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "image", "image\image.vcxproj", "{FBA470B6-81FF-454A-A063-49BBE0843ED5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -25,6 +27,10 @@ Global
 		{AAFD02E8-8AAC-412C-913D-D6D96D9A0DA8}.Debug|Win32.Build.0 = Debug|Win32
 		{AAFD02E8-8AAC-412C-913D-D6D96D9A0DA8}.Release|Win32.ActiveCfg = Release|Win32
 		{AAFD02E8-8AAC-412C-913D-D6D96D9A0DA8}.Release|Win32.Build.0 = Release|Win32
+		{FBA470B6-81FF-454A-A063-49BBE0843ED5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FBA470B6-81FF-454A-A063-49BBE0843ED5}.Debug|Win32.Build.0 = Debug|Win32
+		{FBA470B6-81FF-454A-A063-49BBE0843ED5}.Release|Win32.ActiveCfg = Release|Win32
+		{FBA470B6-81FF-454A-A063-49BBE0843ED5}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

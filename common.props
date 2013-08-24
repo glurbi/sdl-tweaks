@@ -3,12 +3,12 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>C:\Program Files\glew-1.10.0\include;C:\Program Files\SDL2_ttf-2.0.12\include;C:\Program Files\SDL2-2.0.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files\glew-1.10.0\lib\Release\Win32;C:\Program Files\SDL2_ttf-2.0.12\lib\x86;C:\Program Files\SDL2-2.0.0\lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program Files\SDL2_image-2.0.0\include;C:\Program Files\glew-1.10.0\include;C:\Program Files\SDL2_ttf-2.0.12\include;C:\Program Files\SDL2-2.0.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files\SDL2_image-2.0.0\lib\x86;C:\Program Files\glew-1.10.0\lib\Release\Win32;C:\Program Files\SDL2_ttf-2.0.12\lib\x86;C:\Program Files\SDL2-2.0.0\lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;opengl32.lib;glew32.lib;SDL2_ttf.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;opengl32.lib;glew32.lib;SDL2_ttf.lib;SDL2_image.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
     <ClCompile>
