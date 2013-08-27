@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mix", "mix\mix.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "image", "image\image.vcxproj", "{FBA470B6-81FF-454A-A063-49BBE0843ED5}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fullscr", "fullscr\fullscr.vcxproj", "{4BCCFD0E-6D25-4F1D-BA0C-73D6CF2C199E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -31,6 +33,10 @@ Global
 		{FBA470B6-81FF-454A-A063-49BBE0843ED5}.Debug|Win32.Build.0 = Debug|Win32
 		{FBA470B6-81FF-454A-A063-49BBE0843ED5}.Release|Win32.ActiveCfg = Release|Win32
 		{FBA470B6-81FF-454A-A063-49BBE0843ED5}.Release|Win32.Build.0 = Release|Win32
+		{4BCCFD0E-6D25-4F1D-BA0C-73D6CF2C199E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4BCCFD0E-6D25-4F1D-BA0C-73D6CF2C199E}.Debug|Win32.Build.0 = Debug|Win32
+		{4BCCFD0E-6D25-4F1D-BA0C-73D6CF2C199E}.Release|Win32.ActiveCfg = Release|Win32
+		{4BCCFD0E-6D25-4F1D-BA0C-73D6CF2C199E}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
