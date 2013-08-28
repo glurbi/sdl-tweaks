@@ -68,15 +68,31 @@ int main(int argc, char **argv)
 	//
 	// create the triangle vertex buffer
 	//
-	GLuint trianglesId;
-    float triangleVertices[] = {
-            -0.5f, -0.5f, 0.0f,
-            1.0f, -0.5f, 0.0f,
-            -0.5f, 1.0f, 0.0f
-    };
-    glGenBuffers(1, &trianglesId);
-    glBindBuffer(GL_ARRAY_BUFFER, trianglesId);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
+	GLuint linesId;
+    float linesVertices[] = {
+            -0.9f, -0.8f, 0.0f,
+            -0.9f, -0.9f, 0.0f,
+            -0.9f, -0.9f, 0.0f,
+            -0.8f, -0.9f, 0.0f,
+
+            0.9f, -0.8f, 0.0f,
+            0.9f, -0.9f, 0.0f,
+            0.9f, -0.9f, 0.0f,
+            0.8f, -0.9f, 0.0f,
+
+            -0.9f, 0.8f, 0.0f,
+            -0.9f, 0.9f, 0.0f,
+            -0.9f, 0.9f, 0.0f,
+            -0.8f, 0.9f, 0.0f,
+
+            0.9f, 0.8f, 0.0f,
+            0.9f, 0.9f, 0.0f,
+            0.9f, 0.9f, 0.0f,
+            0.8f, 0.9f, 0.0f
+	};
+    glGenBuffers(1, &linesId);
+    glBindBuffer(GL_ARRAY_BUFFER, linesId);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(linesVertices), linesVertices, GL_STATIC_DRAW);
 
 	//
 	// defines the orthographic projection matrix
@@ -153,9 +169,9 @@ int main(int argc, char **argv)
 		// render the triangle in yellow
 		glUniform4f(color, 1.0f, 1.0f, 0.0f, 0.7f);
 		glEnableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
-		glBindBuffer(GL_ARRAY_BUFFER, trianglesId);
+		glBindBuffer(GL_ARRAY_BUFFER, linesId);
 		glVertexAttribPointer(POSITION_ATTRIBUTE_INDEX, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_LINES, 0, 16);
 		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
 
 		SDL_GL_SwapWindow(win);
