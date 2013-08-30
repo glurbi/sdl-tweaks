@@ -32,20 +32,17 @@ struct Matrix44
 
 };
 
-
-// TODO: templatize
-struct VertexShader {
+template <int type>
+struct Shader {
     GLuint id;
 	bool compiled;
-
-	VertexShader(std::string& source) {
-		id = glCreateShader(GL_VERTEX_SHADER);
+	Shader(std::string& source) {
+		id = glCreateShader(type);
 		const GLchar* str = source.c_str();
 		const GLint length = source.length();
 		glShaderSource(id, 1, &str, &length);
 		glCompileShader(id);
 	}
-    
 };
 
 int main(int argc, char **argv)
@@ -83,25 +80,22 @@ int main(int argc, char **argv)
 			gl_Position = mvpMatrix * vec4(vpos, 1.0f);\
 			vcolor = color;\
 		}";
-	VertexShader vertexShader(vertexShaderSource);
+	Shader<GL_VERTEX_SHADER> vertexShader(vertexShaderSource);
 
 	// compile fragment shader source
-    const GLchar* fragmentShaderSource = 
+    std::string fragmentShaderSource = 
 		"#version 330\n\
 		 in vec4 vcolor;\
          out vec4 fcolor;\
 		 void main(void) {\
 			fcolor = vcolor;\
 		 }";
-    int fragmentShaderSourceLength = strlen(fragmentShaderSource);
-    GLuint fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShaderId, 1, &fragmentShaderSource, &fragmentShaderSourceLength);
-    glCompileShader(fragmentShaderId);
+	Shader<GL_FRAGMENT_SHADER> fragmentShader(fragmentShaderSource);
 
 	// link shader program
     GLuint programId = glCreateProgram();
     glAttachShader(programId, vertexShader.id);
-    glAttachShader(programId, fragmentShaderId);
+    glAttachShader(programId, fragmentShader.id);
     // associates the "inPosition" variable from the vertex shader with the position attribute
     // the variable and the attribute must be bound before the program is linked
     glBindAttribLocation(programId, POSITION_ATTRIBUTE_INDEX, "position");
