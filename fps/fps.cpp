@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <map>
 #include <string.h>
 #include <SDL.h>
 #include <GL/glew.h>
@@ -8,7 +9,6 @@ template <class T>
 struct Matrix44
 {
 	T m[16];
-
 	static Matrix44 Ortho(T right, T left, T top, T bottom, T nearp, T farp) {
 		Matrix44 mat;
 		mat.m[0] = 2 / (right - left);
@@ -29,19 +29,39 @@ struct Matrix44
 		mat.m[15] = 1.0f;
 		return mat;
 	}
-
 };
 
 template <int type>
 struct Shader {
     GLuint id;
-	bool compiled;
 	Shader(std::string& source) {
 		id = glCreateShader(type);
 		const GLchar* str = source.c_str();
 		const GLint length = source.length();
 		glShaderSource(id, 1, &str, &length);
 		glCompileShader(id);
+	}
+	~Shader() {
+		glDeleteShader(id);
+	}
+};
+
+struct Program {
+    GLuint id;
+	Program(Shader<GL_VERTEX_SHADER>& vertexShader,
+		Shader<GL_FRAGMENT_SHADER>& fragmentShader,
+		std::map<int, std::string>& attributeIndices)
+	{
+		id = glCreateProgram();
+		glAttachShader(id, vertexShader.id);
+		glAttachShader(id, fragmentShader.id);
+		for (auto it = attributeIndices.begin(); it != attributeIndices.end(); it++) {
+			glBindAttribLocation(id, it->first, it->second.c_str());
+		}
+	    glLinkProgram(id);
+	}
+	~Program() {
+		glDeleteProgram(id);
 	}
 };
 
@@ -69,7 +89,6 @@ int main(int argc, char **argv)
 	// create shader program
 	//
 
-	// compile vertex shader source
     std::string vertexShaderSource =
 		"#version 330\n\
 		 uniform mat4 mvpMatrix;\
@@ -82,7 +101,6 @@ int main(int argc, char **argv)
 		}";
 	Shader<GL_VERTEX_SHADER> vertexShader(vertexShaderSource);
 
-	// compile fragment shader source
     std::string fragmentShaderSource = 
 		"#version 330\n\
 		 in vec4 vcolor;\
@@ -92,14 +110,9 @@ int main(int argc, char **argv)
 		 }";
 	Shader<GL_FRAGMENT_SHADER> fragmentShader(fragmentShaderSource);
 
-	// link shader program
-    GLuint programId = glCreateProgram();
-    glAttachShader(programId, vertexShader.id);
-    glAttachShader(programId, fragmentShader.id);
-    // associates the "inPosition" variable from the vertex shader with the position attribute
-    // the variable and the attribute must be bound before the program is linked
-    glBindAttribLocation(programId, POSITION_ATTRIBUTE_INDEX, "position");
-    glLinkProgram(programId);
+	std::map<int, std::string> attributeIndices;
+	attributeIndices[POSITION_ATTRIBUTE_INDEX] = "position";
+	Program program(vertexShader, fragmentShader, attributeIndices);
 
 	//
 	// create the triangle vertex buffer
@@ -172,13 +185,13 @@ int main(int argc, char **argv)
 		//
 
 		glClear(GL_COLOR_BUFFER_BIT);
-		glUseProgram(programId);
+		glUseProgram(program.id);
 
-		GLuint matrixUniform = glGetUniformLocation(programId, "mvpMatrix");
+		GLuint matrixUniform = glGetUniformLocation(program.id, "mvpMatrix");
 		glUniformMatrix4fv(matrixUniform, 1, false, mat.m);
 
 		// we need the location of the uniform in order to set its value
-		GLuint color = glGetUniformLocation(programId, "color");
+		GLuint color = glGetUniformLocation(program.id, "color");
 
 		// render the triangle in yellow
 		glUniform4f(color, 1.0f, 1.0f, 0.0f, 0.7f);
