@@ -5,6 +5,41 @@
 #include <SDL.h>
 #include <GL/glew.h>
 
+// Up to 16 attributes per vertex is allowed so any value between 0 and 15 will do.
+const int POSITION_ATTRIBUTE_INDEX = 0;
+
+struct App {
+	App() {
+		SDL_Init(SDL_INIT_EVERYTHING);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	}
+	~App() {
+	    SDL_Quit();
+	}
+};
+
+struct Win {
+	SDL_Window* w;
+	SDL_GLContext ctx;
+	Win(std::string title, int width, int height) {
+		w = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL);
+		ctx = SDL_GL_CreateContext(w);
+		glewExperimental=GL_TRUE;
+		glewInit(); // must be called AFTER the OpenGL context has been created
+		glViewport(0, 0, width, height);
+	}
+	void Show() {
+		SDL_ShowWindow(w);
+	}
+	~Win() {
+		SDL_GL_DeleteContext(ctx);
+		SDL_DestroyWindow(w);
+	}
+};
+
 template <class T>
 struct Matrix44
 {
@@ -48,9 +83,9 @@ struct Shader {
 
 struct Program {
     GLuint id;
-	Program(Shader<GL_VERTEX_SHADER>& vertexShader,
-		Shader<GL_FRAGMENT_SHADER>& fragmentShader,
-		std::map<int, std::string>& attributeIndices)
+	Program(const Shader<GL_VERTEX_SHADER>& vertexShader,
+			const Shader<GL_FRAGMENT_SHADER>& fragmentShader,
+			const std::map<int, std::string>& attributeIndices)
 	{
 		id = glCreateProgram();
 		glAttachShader(id, vertexShader.id);
@@ -69,21 +104,9 @@ int main(int argc, char **argv)
 {
 	const int width = 800;
 	const int height = 600;
-    const float aspectRatio = 1.0f * width / height;
-
-	// Up to 16 attributes per vertex is allowed so any value between 0 and 15 will do.
-	const int POSITION_ATTRIBUTE_INDEX = 0;
-
-	SDL_Init(SDL_INIT_EVERYTHING);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_Window* win = SDL_CreateWindow("FPS Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
-	SDL_GLContext ctx = SDL_GL_CreateContext(win);
-	glewInit(); // must be called AFTER the OpenGL context has been created
-
-	glViewport(0, 0, width, height);
+	App app;
+	Win win("FPS Test", width, height);
+	win.Show();
 
 	//
 	// create shader program
@@ -166,13 +189,13 @@ int main(int argc, char **argv)
 				if ((char)key->keysym.sym == 'f') {
 					fullscreen = !fullscreen;
 					if (fullscreen) {
-						SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN_DESKTOP);
+						SDL_SetWindowFullscreen(win.w, SDL_WINDOW_FULLSCREEN_DESKTOP);
 						int w, h;
-						SDL_GetWindowSize(win, &w, &h);
+						SDL_GetWindowSize(win.w, &w, &h);
 						glViewport(0, 0, w, h);
 					} else {
-						SDL_SetWindowFullscreen(win, 0);
-						SDL_SetWindowSize(win, width, height);
+						SDL_SetWindowFullscreen(win.w, 0);
+						SDL_SetWindowSize(win.w, width, height);
 						glViewport(0, 0, width, height);
 					}
 				}
@@ -201,12 +224,8 @@ int main(int argc, char **argv)
 		glDrawArrays(GL_LINES, 0, 16);
 		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
 
-		SDL_GL_SwapWindow(win);
+		SDL_GL_SwapWindow(win.w);
     }
-
-	SDL_GL_DeleteContext(ctx);
-    SDL_DestroyWindow(win);
-    SDL_Quit();
 
     return 0;
 }
