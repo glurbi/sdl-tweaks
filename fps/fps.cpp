@@ -100,6 +100,34 @@ struct Program {
 	}
 };
 
+struct Geometry {
+	GLuint id;
+	Geometry(void* data, long size) {
+		glGenBuffers(1, &id);
+		glBindBuffer(GL_ARRAY_BUFFER, id);
+		glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+	}
+	~Geometry() {
+		glDeleteBuffers(1, &id);
+	}
+	void Render(const Program& program, const Matrix44<float>& mat) {
+		glUseProgram(program.id);
+		GLuint matrixUniform = glGetUniformLocation(program.id, "mvpMatrix");
+		glUniformMatrix4fv(matrixUniform, 1, false, mat.m);
+
+		// we need the location of the uniform in order to set its value
+		GLuint color = glGetUniformLocation(program.id, "color");
+
+		// render the triangle in yellow
+		glUniform4f(color, 1.0f, 1.0f, 0.0f, 0.7f);
+		glEnableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
+		glBindBuffer(GL_ARRAY_BUFFER, id);
+		glVertexAttribPointer(POSITION_ATTRIBUTE_INDEX, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glDrawArrays(GL_LINES, 0, 4);
+		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
+	}
+};
+
 int main(int argc, char **argv)
 {
 	const int width = 800;
@@ -140,31 +168,13 @@ int main(int argc, char **argv)
 	//
 	// create the triangle vertex buffer
 	//
-	GLuint linesId;
     float linesVertices[] = {
-            -0.9f, -0.8f, 0.0f,
-            -0.9f, -0.9f, 0.0f,
-            -0.9f, -0.9f, 0.0f,
-            -0.8f, -0.9f, 0.0f,
-
-            0.9f, -0.8f, 0.0f,
-            0.9f, -0.9f, 0.0f,
-            0.9f, -0.9f, 0.0f,
-            0.8f, -0.9f, 0.0f,
-
-            -0.9f, 0.8f, 0.0f,
-            -0.9f, 0.9f, 0.0f,
-            -0.9f, 0.9f, 0.0f,
-            -0.8f, 0.9f, 0.0f,
-
-            0.9f, 0.8f, 0.0f,
-            0.9f, 0.9f, 0.0f,
-            0.9f, 0.9f, 0.0f,
-            0.8f, 0.9f, 0.0f
+            0.0f, height/2, 0.0f,
+            width, height/2, 0.0f,
+            width/2, 0.0f, 0.0f,
+            width/2, height, 0.0f,
 	};
-    glGenBuffers(1, &linesId);
-    glBindBuffer(GL_ARRAY_BUFFER, linesId);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(linesVertices), linesVertices, GL_STATIC_DRAW);
+    Geometry geometry(linesVertices, sizeof(linesVertices));
 
 	//
 	// defines the orthographic projection matrix
@@ -176,29 +186,12 @@ int main(int argc, char **argv)
 	//
     SDL_Event event;
     bool done = false;
-	bool fullscreen = false;
     while (!done) {
-        while (SDL_PollEvent(&event)) {
+
+		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_QUIT: 
 				done = true;
-				break;
-			case SDL_KEYDOWN:
-				SDL_KeyboardEvent* key = &event.key;
-				std::cout << (char)key->keysym.sym << std::endl;
-				if ((char)key->keysym.sym == 'f') {
-					fullscreen = !fullscreen;
-					if (fullscreen) {
-						SDL_SetWindowFullscreen(win.w, SDL_WINDOW_FULLSCREEN_DESKTOP);
-						int w, h;
-						SDL_GetWindowSize(win.w, &w, &h);
-						glViewport(0, 0, w, h);
-					} else {
-						SDL_SetWindowFullscreen(win.w, 0);
-						SDL_SetWindowSize(win.w, width, height);
-						glViewport(0, 0, width, height);
-					}
-				}
 				break;
             }
         }
@@ -206,24 +199,8 @@ int main(int argc, char **argv)
 		//
 		// rendering
 		//
-
 		glClear(GL_COLOR_BUFFER_BIT);
-		glUseProgram(program.id);
-
-		GLuint matrixUniform = glGetUniformLocation(program.id, "mvpMatrix");
-		glUniformMatrix4fv(matrixUniform, 1, false, mat.m);
-
-		// we need the location of the uniform in order to set its value
-		GLuint color = glGetUniformLocation(program.id, "color");
-
-		// render the triangle in yellow
-		glUniform4f(color, 1.0f, 1.0f, 0.0f, 0.7f);
-		glEnableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
-		glBindBuffer(GL_ARRAY_BUFFER, linesId);
-		glVertexAttribPointer(POSITION_ATTRIBUTE_INDEX, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		glDrawArrays(GL_LINES, 0, 16);
-		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
-
+		geometry.Render(program, mat);
 		SDL_GL_SwapWindow(win.w);
     }
 
