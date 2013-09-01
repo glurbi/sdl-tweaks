@@ -1,12 +1,19 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <map>
+#include <memory>
+#include <vector>
 #include <string.h>
+#include <sys/stat.h>
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include <GL/glew.h>
 
 // Up to 16 attributes per vertex is allowed so any value between 0 and 15 will do.
-const int POSITION_ATTRIBUTE_INDEX = 0;
+const int POSITION_ATTRIBUTE_INDEX = 12;
+const int TEXCOORD_ATTRIBUTE_INDEX = 7;
 
 struct App {
 	App() {
@@ -40,31 +47,40 @@ struct Win {
 	}
 };
 
+std::string	readTextFile(const std::string& filename) {
+	std::ifstream f(filename);
+	std::stringstream buffer;
+	buffer << f.rdbuf();
+	return buffer.str();
+}
+
 template <class T>
 struct Matrix44
 {
 	T m[16];
-	static Matrix44 Ortho(T right, T left, T top, T bottom, T nearp, T farp) {
-		Matrix44 mat;
-		mat.m[0] = 2 / (right - left);
-		mat.m[1] = 0.0f;
-		mat.m[2] = 0.0f;
-		mat.m[3] = 0.0f;
-		mat.m[4] = 0.0f;
-		mat.m[5] = 2 / (top - bottom);
-		mat.m[6] = 0.0f;
-		mat.m[7] = 0.0f;
-		mat.m[8] = 0.0f;
-		mat.m[9] = 0.0f;
-		mat.m[10] = 2 / (farp - nearp);
-		mat.m[11] = 0.0f;
-		mat.m[12] = -(right + left) / (right - left);
-		mat.m[13] = -(top + bottom) / (top - bottom);
-		mat.m[14] = -(farp + nearp) / (farp - nearp);
-		mat.m[15] = 1.0f;
-		return mat;
-	}
 };
+
+template <class T>
+Matrix44<T> Ortho(T right, T left, T top, T bottom, T nearp, T farp) {
+	Matrix44<T> mat;
+	mat.m[0] = 2 / (right - left);
+	mat.m[1] = 0.0f;
+	mat.m[2] = 0.0f;
+	mat.m[3] = 0.0f;
+	mat.m[4] = 0.0f;
+	mat.m[5] = 2 / (top - bottom);
+	mat.m[6] = 0.0f;
+	mat.m[7] = 0.0f;
+	mat.m[8] = 0.0f;
+	mat.m[9] = 0.0f;
+	mat.m[10] = 2 / (farp - nearp);
+	mat.m[11] = 0.0f;
+	mat.m[12] = -(right + left) / (right - left);
+	mat.m[13] = -(top + bottom) / (top - bottom);
+	mat.m[14] = -(farp + nearp) / (farp - nearp);
+	mat.m[15] = 1.0f;
+	return mat;
+}
 
 template <int type>
 struct Shader {
@@ -128,6 +144,51 @@ struct Geometry {
 	}
 };
 
+struct Texture {
+	GLuint id;
+	Texture(SDL_Surface* s) {
+		SDL_Palette* palette = s->format->palette;
+		char* p = (char*) s->pixels;
+		GLubyte* data = new GLubyte[s->w * s->h * 4];
+		GLubyte* t = data;
+		for (int i=s->h; i > 0; i--) {
+			for (int j=0; j < s->w; j++) {
+				SDL_Color color = palette->colors[p[i*s->pitch+j]];
+				*t++ = color.r;
+				*t++ = color.g;
+				*t++ = color.b;
+				*t++ = 255;
+			}
+		}
+		glEnable(GL_TEXTURE_2D);
+		glGenTextures(1, &id);
+		glBindTexture(GL_TEXTURE_2D, id);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, s->w, s->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	}
+	~Texture() {
+		glDeleteTextures(1, &id);
+	}
+};
+
+struct Font {
+	std::vector<Texture> letters;
+	Font(const std::string filename) {
+		TTF_Font* font = TTF_OpenFont(filename.c_str(), 32);
+		SDL_Color text_color = { 255, 255, 255 };
+		for (char c=32; c<127; c++){
+			char str[2] = { ' ', ' ' };
+			str[0] = c;
+			SDL_Surface* letter = TTF_RenderText_Solid(font, str, text_color);
+			letters[c] = Texture(letter);			
+			SDL_FreeSurface(letter);
+		}
+	}
+};
+
 int main(int argc, char **argv)
 {
 	const int width = 800;
@@ -137,36 +198,30 @@ int main(int argc, char **argv)
 	win.Show();
 
 	//
-	// create shader program
+	// create monochrome shader program
 	//
-
-    std::string vertexShaderSource =
-		"#version 330\n\
-		 uniform mat4 mvpMatrix;\
-         uniform vec4 color;\
-         in vec3 vpos;\
-         out vec4 vcolor;\
-		 void main(void) {\
-			gl_Position = mvpMatrix * vec4(vpos, 1.0f);\
-			vcolor = color;\
-		}";
-	Shader<GL_VERTEX_SHADER> vertexShader(vertexShaderSource);
-
-    std::string fragmentShaderSource = 
-		"#version 330\n\
-		 in vec4 vcolor;\
-         out vec4 fcolor;\
-		 void main(void) {\
-			fcolor = vcolor;\
-		 }";
-	Shader<GL_FRAGMENT_SHADER> fragmentShader(fragmentShaderSource);
-
-	std::map<int, std::string> attributeIndices;
-	attributeIndices[POSITION_ATTRIBUTE_INDEX] = "position";
-	Program program(vertexShader, fragmentShader, attributeIndices);
+    std::string monochromeVertexShaderSource = readTextFile("monochrome.vert");
+	Shader<GL_VERTEX_SHADER> monochromeVertexShader(monochromeVertexShaderSource);
+    std::string monochromeFragmentShaderSource = readTextFile("monochrome.frag");
+	Shader<GL_FRAGMENT_SHADER> monochromeFragmentShader(monochromeFragmentShaderSource);
+	std::map<int, std::string> monochromeAttributeIndices;
+	monochromeAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "vpos";
+	Program monochromeProgram(monochromeVertexShader, monochromeFragmentShader, monochromeAttributeIndices);
 
 	//
-	// create the triangle vertex buffer
+	// create texture shader program
+	//
+    std::string textureVertexShaderSource = readTextFile("texture.vert");
+	Shader<GL_VERTEX_SHADER> textureVertexShader(textureVertexShaderSource);
+    std::string textureFragmentShaderSource = readTextFile("texture.frag");
+	Shader<GL_FRAGMENT_SHADER> textureFragmentShader(textureFragmentShaderSource);
+	std::map<int, std::string> textureAttributeIndices;
+	textureAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "pos";
+	textureAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "texCoord";
+	Program textureProgram(textureVertexShader, textureFragmentShader, textureAttributeIndices);
+
+	//
+	// create the geometry
 	//
     float linesVertices[] = {
             0.0f, height/2, 0.0f,
@@ -179,7 +234,7 @@ int main(int argc, char **argv)
 	//
 	// defines the orthographic projection matrix
 	//
-	Matrix44<float> mat = Matrix44<float>::Ortho(width, 0, height, 0, 1.0f, -1.0f);
+	Matrix44<float> mat = Ortho<float>(width, 0, height, 0, 1.0f, -1.0f);
 
 	//
 	// SDL main loop
@@ -200,7 +255,7 @@ int main(int argc, char **argv)
 		// rendering
 		//
 		glClear(GL_COLOR_BUFFER_BIT);
-		geometry.Render(program, mat);
+		geometry.Render(monochromeProgram, mat);
 		SDL_GL_SwapWindow(win.w);
     }
 

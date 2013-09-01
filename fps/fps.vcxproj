@@ -68,6 +68,12 @@
   <ItemGroup>
     <ClCompile Include="fps.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="monochrome.frag" />
+    <None Include="monochrome.vert" />
+    <None Include="texture.frag" />
+    <None Include="texture.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
