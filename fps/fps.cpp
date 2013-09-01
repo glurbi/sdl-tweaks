@@ -18,6 +18,7 @@ const int TEXCOORD_ATTRIBUTE_INDEX = 7;
 struct App {
 	App() {
 		SDL_Init(SDL_INIT_EVERYTHING);
+		TTF_Init();
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
@@ -146,6 +147,7 @@ struct Geometry {
 
 struct Texture {
 	GLuint id;
+	Texture() {}
 	Texture(SDL_Surface* s) {
 		SDL_Palette* palette = s->format->palette;
 		char* p = (char*) s->pixels;
@@ -176,11 +178,13 @@ struct Texture {
 
 struct Font {
 	std::vector<Texture> letters;
-	Font(const std::string filename) {
+	Font(const std::string& filename) {
+		letters.reserve(128);
+		letters.resize(128);
 		TTF_Font* font = TTF_OpenFont(filename.c_str(), 32);
 		SDL_Color text_color = { 255, 255, 255 };
 		for (char c=32; c<127; c++){
-			char str[2] = { ' ', ' ' };
+			char str[2] = { ' ', '\0' };
 			str[0] = c;
 			SDL_Surface* letter = TTF_RenderText_Solid(font, str, text_color);
 			letters[c] = Texture(letter);			
@@ -195,6 +199,7 @@ int main(int argc, char **argv)
 	const int height = 600;
 	App app;
 	Win win("FPS Test", width, height);
+	Font font("arial.ttf");
 	win.Show();
 
 	//
