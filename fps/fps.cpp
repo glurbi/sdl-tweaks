@@ -118,14 +118,17 @@ struct Program {
 };
 
 struct Geometry {
-	GLuint id;
-	Geometry(void* data, long size) {
-		glGenBuffers(1, &id);
-		glBindBuffer(GL_ARRAY_BUFFER, id);
+	GLuint positionsId;
+	Geometry() {
+		positionsId = 0;
+	}
+	void SetVertexPositions(void* data, long size) {
+		glGenBuffers(1, &positionsId);
+		glBindBuffer(GL_ARRAY_BUFFER, positionsId);
 		glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 	}
 	~Geometry() {
-		glDeleteBuffers(1, &id);
+		glDeleteBuffers(1, &positionsId);
 	}
 	void Render(const Program& program, const Matrix44<float>& mat) {
 		glUseProgram(program.id);
@@ -138,7 +141,7 @@ struct Geometry {
 		// render the triangle in yellow
 		glUniform4f(color, 1.0f, 1.0f, 0.0f, 0.7f);
 		glEnableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
-		glBindBuffer(GL_ARRAY_BUFFER, id);
+		glBindBuffer(GL_ARRAY_BUFFER, positionsId);
 		glVertexAttribPointer(POSITION_ATTRIBUTE_INDEX, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		glDrawArrays(GL_LINES, 0, 4);
 		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
@@ -170,6 +173,27 @@ struct Texture {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, s->w, s->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	}
+	void Render(const Program& program, const Matrix44<float>& mat) {
+		glUseProgram(program.id);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, id);
+
+		GLuint matrixUniform = glGetUniformLocation(program.id, "mvpMatrix");
+		glUniformMatrix4fv(matrixUniform, 1, false, mat.m);
+		GLuint textureUniform = glGetUniformLocation(program.id, "texture");
+		glUniform1i(textureUniform, 0);
+
+		glEnableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
+//		glBindBuffer(GL_ARRAY_BUFFER, quadId);
+		glVertexAttribPointer(POSITION_ATTRIBUTE_INDEX, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
+//		glBindBuffer(GL_ARRAY_BUFFER, quadTexId);
+		glVertexAttribPointer(TEXCOORD_ATTRIBUTE_INDEX, 2, GL_FLOAT, GL_FALSE, 0, 0);
+		glDrawArrays(GL_QUADS, 0, 4);
+		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
+		glDisableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 	~Texture() {
 		glDeleteTextures(1, &id);
@@ -234,7 +258,8 @@ int main(int argc, char **argv)
             width/2, 0.0f, 0.0f,
             width/2, height, 0.0f,
 	};
-    Geometry geometry(linesVertices, sizeof(linesVertices));
+    Geometry geometry;
+	geometry.SetVertexPositions(linesVertices, sizeof(linesVertices));
 
 	//
 	// defines the orthographic projection matrix
