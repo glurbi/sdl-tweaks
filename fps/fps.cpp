@@ -101,7 +101,7 @@ struct Geometry {
 template <int type>
 struct Shader {
     GLuint id;
-	Shader(std::string& source) {
+	Shader(const std::string& source) {
 		id = glCreateShader(type);
 		const GLchar* str = source.c_str();
 		const GLint length = source.length();
@@ -111,13 +111,20 @@ struct Shader {
 	~Shader() {
 		glDeleteShader(id);
 	}
+private:
+    Shader(const Shader&);
 };
 
 struct Program {
     GLuint id;
-	Program(const Shader<GL_VERTEX_SHADER>& vertexShader,
-			const Shader<GL_FRAGMENT_SHADER>& fragmentShader,
-			const std::map<int, std::string>& attributeIndices)
+    Shader<GL_VERTEX_SHADER> vertexShader;
+    Shader<GL_FRAGMENT_SHADER> fragmentShader;
+	Program(const std::string&  vertexShaderSource,
+			const std::string&   fragmentShaderSource,
+            const std::map<int, std::string>& attributeIndices)
+    :
+        vertexShader(vertexShaderSource),
+        fragmentShader(fragmentShaderSource)
 	{
 		id = glCreateProgram();
 		glAttachShader(id, vertexShader.id);
@@ -130,14 +137,11 @@ struct Program {
 	~Program() {
 		glDeleteProgram(id);
 	}
+private:
+    Program(const Program& that);
 };
 
 struct MonochromeProgram : public Program {
-	MonochromeProgram(const Shader<GL_VERTEX_SHADER>& vertexShader,
-					  const Shader<GL_FRAGMENT_SHADER>& fragmentShader,
-					  const std::map<int, std::string>& attributeIndices)
-	: Program(vertexShader, fragmentShader, attributeIndices) {}
-
 	void Render(const Geometry& geometry, const Matrix44<float>& mat) {
 		glUseProgram(id);
 		GLuint matrixUniform = glGetUniformLocation(id, "mvpMatrix");
@@ -150,8 +154,59 @@ struct MonochromeProgram : public Program {
 		glDrawArrays(GL_LINES, 0, 4);
 		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
 	}
+
+    static std::shared_ptr<MonochromeProgram> Create() {
+	    std::map<int, std::string> monochromeAttributeIndices;
+	    monochromeAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "vpos";
+        return std::shared_ptr<MonochromeProgram>(new MonochromeProgram(monochromeAttributeIndices));
+    }
+private:
+    MonochromeProgram(const std::map<int, std::string>& attributeIndices)
+	: Program(readTextFile("monochrome.vert"), readTextFile("monochrome.frag"), attributeIndices) {}
 };
 
+/*
+struct TextureProgram : public Program {
+	TextureProgram(Shader<GL_VERTEX_SHADER> vertexShader,
+			       Shader<GL_FRAGMENT_SHADER> fragmentShader,
+	               std::map<int, std::string> attributeIndices)
+	: Program(vertexShader, fragmentShader, attributeIndices) {}
+
+	void Render(const Geometry& geometry, const Matrix44<float>& mat) {
+		glUseProgram(id);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, id);
+
+		GLuint matrixUniform = glGetUniformLocation(id, "mvpMatrix");
+		glUniformMatrix4fv(matrixUniform, 1, false, mat.m);
+		GLuint textureUniform = glGetUniformLocation(id, "texture");
+		glUniform1i(textureUniform, 0);
+
+		glEnableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
+//		glBindBuffer(GL_ARRAY_BUFFER, quadId);
+		glVertexAttribPointer(POSITION_ATTRIBUTE_INDEX, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
+//		glBindBuffer(GL_ARRAY_BUFFER, quadTexId);
+		glVertexAttribPointer(TEXCOORD_ATTRIBUTE_INDEX, 2, GL_FLOAT, GL_FALSE, 0, 0);
+		glDrawArrays(GL_QUADS, 0, 4);
+		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
+		glDisableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+
+    static TextureProgram Create() {
+        std::string textureVertexShaderSource = readTextFile("texture.vert");
+	    Shader<GL_VERTEX_SHADER> textureVertexShader(textureVertexShaderSource);
+        std::string textureFragmentShaderSource = readTextFile("texture.frag");
+	    Shader<GL_FRAGMENT_SHADER> textureFragmentShader(textureFragmentShaderSource);
+	    std::map<int, std::string> textureAttributeIndices;
+	    textureAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "pos";
+	    textureAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "texCoord";
+	    TextureProgram textureProgram(textureVertexShader, textureFragmentShader, textureAttributeIndices);
+        return textureProgram;
+    }
+};
+*/
 struct Texture {
 	GLuint id;
 	Texture() {}
@@ -179,25 +234,6 @@ struct Texture {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, s->w, s->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	}
 	void Render(const Program& program, const Matrix44<float>& mat) {
-		glUseProgram(program.id);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, id);
-
-		GLuint matrixUniform = glGetUniformLocation(program.id, "mvpMatrix");
-		glUniformMatrix4fv(matrixUniform, 1, false, mat.m);
-		GLuint textureUniform = glGetUniformLocation(program.id, "texture");
-		glUniform1i(textureUniform, 0);
-
-		glEnableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
-//		glBindBuffer(GL_ARRAY_BUFFER, quadId);
-		glVertexAttribPointer(POSITION_ATTRIBUTE_INDEX, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		glEnableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
-//		glBindBuffer(GL_ARRAY_BUFFER, quadTexId);
-		glVertexAttribPointer(TEXCOORD_ATTRIBUTE_INDEX, 2, GL_FLOAT, GL_FALSE, 0, 0);
-		glDrawArrays(GL_QUADS, 0, 4);
-		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
-		glDisableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 	~Texture() {
 		glDeleteTextures(1, &id);
@@ -230,28 +266,8 @@ int main(int argc, char **argv)
 	Font font("arial.ttf");
 	win.Show();
 
-	//
-	// create monochrome shader program
-	//
-    std::string monochromeVertexShaderSource = readTextFile("monochrome.vert");
-	Shader<GL_VERTEX_SHADER> monochromeVertexShader(monochromeVertexShaderSource);
-    std::string monochromeFragmentShaderSource = readTextFile("monochrome.frag");
-	Shader<GL_FRAGMENT_SHADER> monochromeFragmentShader(monochromeFragmentShaderSource);
-	std::map<int, std::string> monochromeAttributeIndices;
-	monochromeAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "vpos";
-	MonochromeProgram monochromeProgram(monochromeVertexShader, monochromeFragmentShader, monochromeAttributeIndices);
-
-	//
-	// create texture shader program
-	//
-    std::string textureVertexShaderSource = readTextFile("texture.vert");
-	Shader<GL_VERTEX_SHADER> textureVertexShader(textureVertexShaderSource);
-    std::string textureFragmentShaderSource = readTextFile("texture.frag");
-	Shader<GL_FRAGMENT_SHADER> textureFragmentShader(textureFragmentShaderSource);
-	std::map<int, std::string> textureAttributeIndices;
-	textureAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "pos";
-	textureAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "texCoord";
-	Program textureProgram(textureVertexShader, textureFragmentShader, textureAttributeIndices);
+    std::shared_ptr<MonochromeProgram> monochromeProgram = MonochromeProgram::Create();
+    //TextureProgram textureProgram = TextureProgram::Create();
 
 	//
 	// create the geometry
@@ -289,7 +305,7 @@ int main(int argc, char **argv)
 		// rendering
 		//
 		glClear(GL_COLOR_BUFFER_BIT);
-		monochromeProgram.Render(geometry, mat);
+		monochromeProgram->Render(geometry, mat);
 		SDL_GL_SwapWindow(win.w);
     }
 
