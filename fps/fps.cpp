@@ -25,6 +25,7 @@ struct App {
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	}
 	~App() {
+		TTF_Quit();
 	    SDL_Quit();
 	}
 };
@@ -35,7 +36,6 @@ struct Win {
 	Win(std::string title, int width, int height) {
 		w = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL);
 		ctx = SDL_GL_CreateContext(w);
-		glewExperimental=GL_TRUE;
 		glewInit(); // must be called AFTER the OpenGL context has been created
 		glViewport(0, 0, width, height);
 	}
@@ -108,14 +108,12 @@ struct Geometry {
 
 struct Texture {
 	GLuint id;
+	int width;
+	int height;
 	Texture() {}
 	Texture(SDL_Surface* s) {
-
-        	if (s->format->BitsPerPixel != 8) {
-		std::cout << "Pixel format not supported (" << s->format->BitsPerPixel << ")" << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
+		width = s->w;
+		height = s->h;
 		SDL_Palette* palette = s->format->palette;
 		char* p = (char*) s->pixels;
 		GLubyte* data = new GLubyte[s->w * s->h * 4];
@@ -123,12 +121,9 @@ struct Texture {
 		for (int i=s->h; i > 0; i--) {
 			for (int j=0; j < s->w; j++) {
 				SDL_Color color = palette->colors[p[i*s->pitch+j]];
-				*t++ = 255;
-				*t++ = 255;
-				*t++ = 255;
-				//*t++ = color.r;
-				//*t++ = color.g;
-				//*t++ = color.b;
+				*t++ = color.r;
+				*t++ = color.g;
+				*t++ = color.b;
 				*t++ = 255;
 			}
 		}
@@ -166,8 +161,8 @@ struct Program {
     GLuint id;
     Shader<GL_VERTEX_SHADER> vertexShader;
     Shader<GL_FRAGMENT_SHADER> fragmentShader;
-	Program(const std::string&  vertexShaderSource,
-			const std::string&   fragmentShaderSource,
+	Program(const std::string& vertexShaderSource,
+			const std::string& fragmentShaderSource,
             const std::map<int, std::string>& attributeIndices)
     :
         vertexShader(vertexShaderSource),
@@ -230,8 +225,6 @@ struct TextureProgram : public Program {
 		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
 		glDisableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-//                if (int err = glGetError() != GL_NO_ERROR) { std::cout << "error:" << err << std::endl; }
-
 	}
     static std::shared_ptr<TextureProgram> Create() {
 	    std::map<int, std::string> textureAttributeIndices;
@@ -245,18 +238,48 @@ private:
 };
 
 struct Font {
-	std::vector<Texture> letters;
+	std::vector<std::shared_ptr<Texture>> letters;
 	Font(const std::string& filename) {
 		letters.reserve(128);
 		letters.resize(128);
 		TTF_Font* font = TTF_OpenFont(filename.c_str(), 32);
 		SDL_Color text_color = { 255, 255, 255 };
-		for (char c=32; c<127; c++){
-			char str[2] = { ' ', '\0' };
+		for (char c=32; c<120; c++){
+			char str[2] = { ' ', 0 };
 			str[0] = c;
 			SDL_Surface* letter = TTF_RenderText_Solid(font, str, text_color);
-			letters[c] = Texture(letter);			
+			letters[c] = std::shared_ptr<Texture>(new Texture(letter));			
 			SDL_FreeSurface(letter);
+		}
+	}
+};
+
+struct TextWriter {
+	const Font& font;
+    std::shared_ptr<TextureProgram> textureProgram;
+	TextWriter(const Font& font_) : font(font_) {
+		textureProgram = TextureProgram::Create();
+	}
+	void Write(int x, int y, const std::string& text, const Matrix44<float>& mat) {
+		for (const char& c : text) {
+			const Texture& t = *font.letters[c];
+			Geometry myTextBox;
+			float positions[] = {
+				x, y, 0.0f,
+				x+t.width, y, 0.0f,
+				x+t.width, y+t.height, 0.0f,
+				x, y+t.height, 0.0f
+			};
+			float texcoords[] = {
+				0.0f, 0.0f,
+				1.0f, 0.0f,
+				1.0f, 1.0f,
+				0.0f, 1.0f
+			};
+			myTextBox.SetVertexPositions(positions, sizeof(positions));
+			myTextBox.SetVertexTexCoords(texcoords, sizeof(texcoords));
+			textureProgram->Render(myTextBox, t, mat);
+			x += t.width;
 		}
 	}
 };
@@ -273,7 +296,7 @@ int main(int argc, char **argv)
 
 	Matrix44<float> mat = Ortho<float>(width, 0, height, 0, 1.0f, -1.0f);
     std::shared_ptr<MonochromeProgram> monochromeProgram = MonochromeProgram::Create();
-    std::shared_ptr<TextureProgram> textureProgram = TextureProgram::Create();
+	TextWriter textWriter(font);
 
 	//
 	// create the geometry
@@ -287,21 +310,6 @@ int main(int argc, char **argv)
 	};
 	myGeometry.SetVertexPositions(linesVertices, sizeof(linesVertices));
 
-    Geometry myTextBox;
-    float positions[] = {
-        10.0f, 10.0f, 0.0f,
-        50.0f, 10.0f, 0.0f,
-        50.0f, 100.0f, 0.0f,
-        10.0f, 100.0f, 0.0f
-    };
-	float texcoords[] = {
-		1.0f, 1.0f,
-		1.0f, 0.0f,
-		0.0f, 0.0f,
-		0.0f, 1.0f
-	};
-    myTextBox.SetVertexPositions(positions, sizeof(positions));
-    myTextBox.SetVertexTexCoords(texcoords, sizeof(texcoords));
 
 	//
 	// SDL main loop
@@ -309,7 +317,6 @@ int main(int argc, char **argv)
     SDL_Event event;
     bool done = false;
     while (!done) {
-
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_QUIT: 
@@ -317,13 +324,9 @@ int main(int argc, char **argv)
 				break;
             }
         }
-
-		//
-		// rendering
-		//
 		glClear(GL_COLOR_BUFFER_BIT);
 		monochromeProgram->Render(myGeometry, mat);
-        textureProgram->Render(myTextBox, font.letters['d'], mat);
+		textWriter.Write(10, 10, "FPS", mat);
 		SDL_GL_SwapWindow(win.w);
     }
 
