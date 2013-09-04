@@ -42,7 +42,6 @@ int main(int argc, char** argv)
 	TTF_Font* font = TTF_OpenFont("arial.ttf", 128);
 	SDL_Color text_color = {255, 255, 255};
 	SDL_Surface* text = TTF_RenderText_Solid(font, "Hello, SDL!", text_color);
-	glEnable(GL_TEXTURE_2D);
 
 	//
 	// create the shader program

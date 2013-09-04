@@ -85,16 +85,63 @@ Matrix44<T> Ortho(T right, T left, T top, T bottom, T nearp, T farp) {
 
 struct Geometry {
 	GLuint positionsId;
+	GLuint texCoordsId;
 	Geometry() {
 		positionsId = 0;
+        texCoordsId = 0;
 	}
 	void SetVertexPositions(void* data, long size) {
 		glGenBuffers(1, &positionsId);
 		glBindBuffer(GL_ARRAY_BUFFER, positionsId);
 		glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 	}
+    void SetVertexTexCoords(void* data, long size) {
+		glGenBuffers(1, &texCoordsId);
+		glBindBuffer(GL_ARRAY_BUFFER, texCoordsId);
+		glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+    }
 	~Geometry() {
 		glDeleteBuffers(1, &positionsId);
+		glDeleteBuffers(1, &texCoordsId);
+	}
+};
+
+struct Texture {
+	GLuint id;
+	Texture() {}
+	Texture(SDL_Surface* s) {
+
+        	if (s->format->BitsPerPixel != 8) {
+		std::cout << "Pixel format not supported (" << s->format->BitsPerPixel << ")" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+		SDL_Palette* palette = s->format->palette;
+		char* p = (char*) s->pixels;
+		GLubyte* data = new GLubyte[s->w * s->h * 4];
+		GLubyte* t = data;
+		for (int i=s->h; i > 0; i--) {
+			for (int j=0; j < s->w; j++) {
+				SDL_Color color = palette->colors[p[i*s->pitch+j]];
+				*t++ = 255;
+				*t++ = 255;
+				*t++ = 255;
+				//*t++ = color.r;
+				//*t++ = color.g;
+				//*t++ = color.b;
+				*t++ = 255;
+			}
+		}
+		glGenTextures(1, &id);
+		glBindTexture(GL_TEXTURE_2D, id);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, s->w, s->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	}
+	~Texture() {
+		glDeleteTextures(1, &id);
 	}
 };
 
@@ -154,7 +201,6 @@ struct MonochromeProgram : public Program {
 		glDrawArrays(GL_LINES, 0, 4);
 		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
 	}
-
     static std::shared_ptr<MonochromeProgram> Create() {
 	    std::map<int, std::string> monochromeAttributeIndices;
 	    monochromeAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "vpos";
@@ -165,79 +211,37 @@ private:
 	: Program(readTextFile("monochrome.vert"), readTextFile("monochrome.frag"), attributeIndices) {}
 };
 
-/*
 struct TextureProgram : public Program {
-	TextureProgram(Shader<GL_VERTEX_SHADER> vertexShader,
-			       Shader<GL_FRAGMENT_SHADER> fragmentShader,
-	               std::map<int, std::string> attributeIndices)
-	: Program(vertexShader, fragmentShader, attributeIndices) {}
-
-	void Render(const Geometry& geometry, const Matrix44<float>& mat) {
+	void Render(const Geometry& geometry, const Texture& texture, const Matrix44<float>& mat) {
 		glUseProgram(id);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, id);
-
+		glBindTexture(GL_TEXTURE_2D, texture.id);
 		GLuint matrixUniform = glGetUniformLocation(id, "mvpMatrix");
 		glUniformMatrix4fv(matrixUniform, 1, false, mat.m);
 		GLuint textureUniform = glGetUniformLocation(id, "texture");
-		glUniform1i(textureUniform, 0);
-
+		glUniform1i(textureUniform, 0); // we pass the texture unit
 		glEnableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
-//		glBindBuffer(GL_ARRAY_BUFFER, quadId);
+        glBindBuffer(GL_ARRAY_BUFFER, geometry.positionsId);
 		glVertexAttribPointer(POSITION_ATTRIBUTE_INDEX, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
-//		glBindBuffer(GL_ARRAY_BUFFER, quadTexId);
+        glBindBuffer(GL_ARRAY_BUFFER, geometry.texCoordsId);
 		glVertexAttribPointer(TEXCOORD_ATTRIBUTE_INDEX, 2, GL_FLOAT, GL_FALSE, 0, 0);
 		glDrawArrays(GL_QUADS, 0, 4);
 		glDisableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
 		glDisableVertexAttribArray(TEXCOORD_ATTRIBUTE_INDEX);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
+//                if (int err = glGetError() != GL_NO_ERROR) { std::cout << "error:" << err << std::endl; }
 
-    static TextureProgram Create() {
-        std::string textureVertexShaderSource = readTextFile("texture.vert");
-	    Shader<GL_VERTEX_SHADER> textureVertexShader(textureVertexShaderSource);
-        std::string textureFragmentShaderSource = readTextFile("texture.frag");
-	    Shader<GL_FRAGMENT_SHADER> textureFragmentShader(textureFragmentShaderSource);
+	}
+    static std::shared_ptr<TextureProgram> Create() {
 	    std::map<int, std::string> textureAttributeIndices;
 	    textureAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "pos";
-	    textureAttributeIndices[POSITION_ATTRIBUTE_INDEX] = "texCoord";
-	    TextureProgram textureProgram(textureVertexShader, textureFragmentShader, textureAttributeIndices);
-        return textureProgram;
+	    textureAttributeIndices[TEXCOORD_ATTRIBUTE_INDEX] = "texCoord";
+        return std::shared_ptr<TextureProgram>(new TextureProgram(textureAttributeIndices));
     }
-};
-*/
-struct Texture {
-	GLuint id;
-	Texture() {}
-	Texture(SDL_Surface* s) {
-		SDL_Palette* palette = s->format->palette;
-		char* p = (char*) s->pixels;
-		GLubyte* data = new GLubyte[s->w * s->h * 4];
-		GLubyte* t = data;
-		for (int i=s->h; i > 0; i--) {
-			for (int j=0; j < s->w; j++) {
-				SDL_Color color = palette->colors[p[i*s->pitch+j]];
-				*t++ = color.r;
-				*t++ = color.g;
-				*t++ = color.b;
-				*t++ = 255;
-			}
-		}
-		glEnable(GL_TEXTURE_2D);
-		glGenTextures(1, &id);
-		glBindTexture(GL_TEXTURE_2D, id);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, s->w, s->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-	}
-	void Render(const Program& program, const Matrix44<float>& mat) {
-	}
-	~Texture() {
-		glDeleteTextures(1, &id);
-	}
+private:
+	TextureProgram(std::map<int, std::string>& attributeIndices)
+	: Program(readTextFile("texture.vert"), readTextFile("texture.frag"), attributeIndices) {}
 };
 
 struct Font {
@@ -261,30 +265,43 @@ int main(int argc, char **argv)
 {
 	const int width = 800;
 	const int height = 600;
+
 	App app;
 	Win win("FPS Test", width, height);
 	Font font("arial.ttf");
 	win.Show();
 
+	Matrix44<float> mat = Ortho<float>(width, 0, height, 0, 1.0f, -1.0f);
     std::shared_ptr<MonochromeProgram> monochromeProgram = MonochromeProgram::Create();
-    //TextureProgram textureProgram = TextureProgram::Create();
+    std::shared_ptr<TextureProgram> textureProgram = TextureProgram::Create();
 
 	//
 	// create the geometry
 	//
+    Geometry myGeometry;
     float linesVertices[] = {
             0.0f, height/2, 0.0f,
             width, height/2, 0.0f,
             width/2, 0.0f, 0.0f,
             width/2, height, 0.0f,
 	};
-    Geometry geometry;
-	geometry.SetVertexPositions(linesVertices, sizeof(linesVertices));
+	myGeometry.SetVertexPositions(linesVertices, sizeof(linesVertices));
 
-	//
-	// defines the orthographic projection matrix
-	//
-	Matrix44<float> mat = Ortho<float>(width, 0, height, 0, 1.0f, -1.0f);
+    Geometry myTextBox;
+    float positions[] = {
+        10.0f, 10.0f, 0.0f,
+        50.0f, 10.0f, 0.0f,
+        50.0f, 100.0f, 0.0f,
+        10.0f, 100.0f, 0.0f
+    };
+	float texcoords[] = {
+		1.0f, 1.0f,
+		1.0f, 0.0f,
+		0.0f, 0.0f,
+		0.0f, 1.0f
+	};
+    myTextBox.SetVertexPositions(positions, sizeof(positions));
+    myTextBox.SetVertexTexCoords(texcoords, sizeof(texcoords));
 
 	//
 	// SDL main loop
@@ -305,7 +322,8 @@ int main(int argc, char **argv)
 		// rendering
 		//
 		glClear(GL_COLOR_BUFFER_BIT);
-		monochromeProgram->Render(geometry, mat);
+		monochromeProgram->Render(myGeometry, mat);
+        textureProgram->Render(myTextBox, font.letters['d'], mat);
 		SDL_GL_SwapWindow(win.w);
     }
 
