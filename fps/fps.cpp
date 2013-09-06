@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <numeric>
 #include <string.h>
 #include <sys/stat.h>
 #include <SDL.h>
@@ -260,7 +261,10 @@ struct TextWriter {
 	TextWriter(const Font& font_) : font(font_) {
 		textureProgram = TextureProgram::Create();
 	}
-	void Write(int x, int y, const std::string& text, const Matrix44<float>& mat) {
+	void Write(const std::string& text, int x, int y, const Win& win) {
+        int width, height;
+        SDL_GetWindowSize(win.w, &width, &height);
+    	Matrix44<float> mat = Ortho<float>(width, 0, height, 0, 1.0f, -1.0f);
 		for (const char& c : text) {
 			const Texture& t = *font.letters[c];
 			Geometry myTextBox;
@@ -286,8 +290,8 @@ struct TextWriter {
 
 int main(int argc, char **argv)
 {
-	const int width = 800;
-	const int height = 600;
+	const int width = 1024;
+	const int height = 768;
 
 	App app;
 	Win win("FPS Test", width, height);
@@ -316,7 +320,14 @@ int main(int argc, char **argv)
 	//
     SDL_Event event;
     bool done = false;
+    int frameTimeIndex = 0;
+    std::vector<int> frameTimes;
+    frameTimes.resize(10);
+    frameTimes.reserve(10);
+    int t0 = SDL_GetTicks();
     while (!done) {
+        int t1 = SDL_GetTicks();
+        frameTimes[frameTimeIndex % frameTimes.size()] = t1-t0;
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_QUIT: 
@@ -326,8 +337,16 @@ int main(int argc, char **argv)
         }
 		glClear(GL_COLOR_BUFFER_BIT);
 		monochromeProgram->Render(myGeometry, mat);
-		textWriter.Write(10, 10, "FPS", mat);
+        std::stringstream fpsStr;
+        int sum = std::accumulate(frameTimes.begin(),frameTimes.end(),0);
+        int avg = sum / frameTimes.size();
+        int fps = 1000.0 / avg;
+        fpsStr << fps << " FPS";
+		textWriter.Write(fpsStr.str(), 10, 10, win);
+        textWriter.Write("Hello again, SDL!", 10, height-100, win);
 		SDL_GL_SwapWindow(win.w);
+        t0 = t1;
+        frameTimeIndex++;
     }
 
     return 0;
