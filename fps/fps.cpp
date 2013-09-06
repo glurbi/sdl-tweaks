@@ -122,11 +122,17 @@ struct Texture {
 		for (int i=s->h; i > 0; i--) {
 			for (int j=0; j < s->w; j++) {
 				SDL_Color color = palette->colors[p[i*s->pitch+j]];
+                if (color.r != 0) {
+                    std::cout << "1";
+                } else {
+                    std::cout << "0";
+                }
 				*t++ = color.r;
 				*t++ = color.g;
 				*t++ = color.b;
 				*t++ = 255;
 			}
+                std::cout << std::endl;
 		}
 		glGenTextures(1, &id);
 		glBindTexture(GL_TEXTURE_2D, id);
@@ -243,12 +249,13 @@ struct Font {
 	Font(const std::string& filename) {
 		letters.reserve(128);
 		letters.resize(128);
-		TTF_Font* font = TTF_OpenFont(filename.c_str(), 32);
+		TTF_Font* font = TTF_OpenFont(filename.c_str(), 50);
 		SDL_Color text_color = { 255, 255, 255 };
 		for (char c=32; c<120; c++){
 			char str[2] = { ' ', 0 };
 			str[0] = c;
-			SDL_Surface* letter = TTF_RenderText_Solid(font, str, text_color);
+            char* str2 = "N";
+			SDL_Surface* letter = TTF_RenderText_Solid(font, str2, text_color);
 			letters[c] = std::shared_ptr<Texture>(new Texture(letter));			
 			SDL_FreeSurface(letter);
 		}
