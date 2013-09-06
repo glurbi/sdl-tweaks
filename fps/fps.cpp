@@ -119,20 +119,14 @@ struct Texture {
 		char* p = (char*) s->pixels;
 		GLubyte* data = new GLubyte[s->w * s->h * 4];
 		GLubyte* t = data;
-		for (int i=s->h; i > 0; i--) {
+		for (int i=s->h-1; i >= 0; i--) {
 			for (int j=0; j < s->w; j++) {
 				SDL_Color color = palette->colors[p[i*s->pitch+j]];
-                if (color.r != 0) {
-                    std::cout << "1";
-                } else {
-                    std::cout << "0";
-                }
 				*t++ = color.r;
 				*t++ = color.g;
 				*t++ = color.b;
 				*t++ = 255;
 			}
-                std::cout << std::endl;
 		}
 		glGenTextures(1, &id);
 		glBindTexture(GL_TEXTURE_2D, id);
@@ -246,16 +240,15 @@ private:
 
 struct Font {
 	std::vector<std::shared_ptr<Texture>> letters;
-	Font(const std::string& filename) {
+	Font(const std::string& filename, int size) {
 		letters.reserve(128);
 		letters.resize(128);
-		TTF_Font* font = TTF_OpenFont(filename.c_str(), 50);
+		TTF_Font* font = TTF_OpenFont(filename.c_str(), size);
 		SDL_Color text_color = { 255, 255, 255 };
 		for (char c=32; c<120; c++){
 			char str[2] = { ' ', 0 };
 			str[0] = c;
-            char* str2 = "N";
-			SDL_Surface* letter = TTF_RenderText_Solid(font, str2, text_color);
+			SDL_Surface* letter = TTF_RenderText_Solid(font, str, text_color);
 			letters[c] = std::shared_ptr<Texture>(new Texture(letter));			
 			SDL_FreeSurface(letter);
 		}
@@ -302,7 +295,7 @@ int main(int argc, char **argv)
 
 	App app;
 	Win win("FPS Test", width, height);
-	Font font("arial.ttf");
+	Font font("arial.ttf", 20);
 	win.Show();
 
 	Matrix44<float> mat = Ortho<float>(width, 0, height, 0, 1.0f, -1.0f);
@@ -350,7 +343,7 @@ int main(int argc, char **argv)
         int fps = 1000.0 / avg;
         fpsStr << fps << " FPS";
 		textWriter.Write(fpsStr.str(), 10, 10, win);
-        textWriter.Write("Hello again, SDL!", 10, height-100, win);
+        textWriter.Write("Hello again, SDL!", 10, height-30, win);
 		SDL_GL_SwapWindow(win.w);
         t0 = t1;
         frameTimeIndex++;
