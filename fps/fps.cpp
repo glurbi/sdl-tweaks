@@ -302,9 +302,6 @@ int main(int argc, char **argv)
     std::shared_ptr<MonochromeProgram> monochromeProgram = MonochromeProgram::Create();
 	TextWriter textWriter(font);
 
-	//
-	// create the geometry
-	//
     Geometry myGeometry;
     float linesVertices[] = {
             0.0f, height/2, 0.0f,
@@ -314,10 +311,6 @@ int main(int argc, char **argv)
 	};
 	myGeometry.SetVertexPositions(linesVertices, sizeof(linesVertices));
 
-
-	//
-	// SDL main loop
-	//
     SDL_Event event;
     bool done = false;
     int frameTimeIndex = 0;
